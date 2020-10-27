@@ -208,8 +208,12 @@ class StartWindow(QMainWindow):
         self.quality_layout = QHBoxLayout()
         
         self.good_checkbox = QRadioButton("BOM")
-        self.good_checkbox.setChecked(Dados["imagens"][clean_f_list[index]]["qualidade"])
         self.bad_checkbox = QRadioButton("RUIM")
+        
+        if Dados["imagens"][clean_f_list[index]]["qualidade"] == True:
+            self.good_checkbox.setChecked(True)
+        else:
+            self.bad_checkbox.setChecked(True)
         
         self.quality_layout.addWidget(self.good_checkbox)
         self.quality_layout.addWidget(self.bad_checkbox)
@@ -311,6 +315,8 @@ class StartWindow(QMainWindow):
         self.shortcut_delete_all.activated.connect(self.delete_3)
         self.shortcut_focus = QShortcut(QKeySequence('N'),self)
         self.shortcut_focus.activated.connect(self.focus_line)
+        self.shortcut_quality = QShortcut(QKeySequence('R'),self)
+        self.shortcut_quality.activated.connect(self.change_quality)
         
         self.show()
                 
@@ -439,6 +445,18 @@ Esc\t- \tSalvar e Fechar")
             
         self.next_image()
     
+    def change_quality(self):
+        if Dados["imagens"][clean_f_list[index]]["qualidade"] == True:
+            Dados["imagens"][clean_f_list[index]]["qualidade"] = False
+            self.good_checkbox.setChecked(False)
+            self.bad_checkbox.setChecked(True)
+            self.save()
+        else:
+            Dados["imagens"][clean_f_list[index]]["qualidade"] = True
+            self.good_checkbox.setChecked(True)
+            self.bad_checkbox.setChecked(False)
+            self.save()
+            
     def checkbox_state(self,b):
         if b.text() == "BOM":
             if b.isChecked()==True:
