@@ -1,2 +1,2 @@
 # MarcarImagens
-Necessário ter o PyQt5 e o OpenCV instalado.
+Necessário ter o PyQt5 e o OpenCV instalados.
