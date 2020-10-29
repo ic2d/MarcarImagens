@@ -7,9 +7,9 @@ Created on Tue Oct 20 13:54:38 2020
 
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QGridLayout, QApplication, QLabel, QRadioButton, \
-                            QButtonGroup, QVBoxLayout, QHBoxLayout, QGroupBox, QLineEdit, QMessageBox, QShortcut, \
-                            QTableWidget, QTableWidgetItem, QCheckBox
-from PyQt5.QtGui import QPixmap, QFont, QIntValidator, QImage, QPainter, QPen, QBrush, QKeySequence
+                            QHBoxLayout, QGroupBox, QLineEdit, QMessageBox, QShortcut, \
+                            QTableWidget, QTableWidgetItem
+from PyQt5.QtGui import QPixmap, QIntValidator, QImage, QPainter, QPen, QKeySequence, QTransform
 from PyQt5.QtCore import Qt, QLine
 import cv2 as cv
 import os  # funções para interarir com SO
@@ -41,7 +41,7 @@ else :
     Dados = {"versao": 1.0, "resolucao": (800, 600), "imagens": {}}
     # adiciona a clean_f_list aos index
     for i in clean_f_list:
-        Dados["imagens"][i] = {"pontos": [], "numero":0, "qualidade": True}
+        Dados["imagens"][i] = {"pontos": [], "numero":0, "qualidade": True, "rotacao": 0}
                    
 
 class ImageLabel(QLabel):
@@ -125,26 +125,30 @@ class StartWindow(QMainWindow):
         super().__init__()
         global flag
         global index
-        
+                
         self.central_widget = QWidget()
         self.grid_layout = QGridLayout(self.central_widget)
         self.setMouseTracking(True)
         self.flag_draw = False
                 
-        print("Imagem: ", clean_f_list[index])
-        
-        
+        print("Imagem: ", clean_f_list[index])      
     
         original_img = cv.imread(os.path.join(arquivo_base, clean_f_list[index]))
-            
+                
         height, width, channel = original_img.shape
         bytesPerLine = 3 * width
         
         self.opencv_image = QImage(original_img.data, width, height, bytesPerLine, QImage.Format_RGB888)
         # vai ser trocado pra janela do opencv
         self.image_test = QPixmap(QImage(self.opencv_image))
-        self.image_resize = self.image_test.scaled(800,600)
+        transform = QTransform().rotate(Dados["imagens"][clean_f_list[index]]["rotacao"])
+        self.image_test = self.image_test.transformed(transform, QtCore.Qt.SmoothTransformation)
         
+        if Dados["imagens"][clean_f_list[index]]["rotacao"] == 0 or Dados["imagens"][clean_f_list[index]]["rotacao"] == 180:
+            self.image_resize = self.image_test.scaled(800,600)
+        else:
+            self.image_resize = self.image_test.scaled(600,800)
+                    
         
         self.example_image = QPixmap("example.png")
         self.example_image = self.example_image.scaled(100,100)
@@ -188,6 +192,8 @@ class StartWindow(QMainWindow):
         self.button_del3 = QPushButton('Excluir 3')
         self.button_del4 = QPushButton('Excluir Todos')
         self.button_help = QPushButton('Atalhos')
+        self.button_rotate1 = QPushButton('+90')
+        self.button_rotate2 = QPushButton('-90')
 
         # cria as checkboxs
         # self.mode_groupe = QGroupBox()
@@ -274,6 +280,8 @@ class StartWindow(QMainWindow):
         self.grid_layout.addWidget(self.button_previous, 20,1,1,4)
         self.grid_layout.addWidget(self.button_next, 20,5,1,4)
         self.grid_layout.addWidget(self.button_help,0,7,1,1)
+        self.grid_layout.addWidget(self.button_rotate1,0,1,1,1)
+        self.grid_layout.addWidget(self.button_rotate2,0,3,1,1)
         
         # adiciona as checkboxs ao grid
         # self.grid_layout.addWidget(self.mode_groupe, 2,2,1,6)
@@ -297,6 +305,8 @@ class StartWindow(QMainWindow):
         self.number_input.returnPressed.connect(self.animal_number)
         self.good_checkbox.toggled.connect(lambda:self.checkbox_state(self.good_checkbox))
         self.bad_checkbox.toggled.connect(lambda:self.checkbox_state(self.bad_checkbox))
+        self.button_rotate1.clicked.connect(self.rotate_plus)
+        self.button_rotate2.clicked.connect(self.rotate_minus)
         
         # Criar os atalhos do teclado
         self.shortcut_next = QShortcut(QKeySequence('Space'),self)
@@ -317,6 +327,10 @@ class StartWindow(QMainWindow):
         self.shortcut_focus.activated.connect(self.focus_line)
         self.shortcut_quality = QShortcut(QKeySequence('R'),self)
         self.shortcut_quality.activated.connect(self.change_quality)
+        self.shortcut_plus = QShortcut(QKeySequence('+'),self)
+        self.shortcut_plus.activated.connect(self.rotate_plus)
+        self.shortcut_minus = QShortcut(QKeySequence('-'),self)
+        self.shortcut_minus.activated.connect(self.rotate_minus)
         
         self.show()
                 
@@ -350,14 +364,21 @@ Esc\t- \tSalvar e Fechar")
             print("Imagem: ", clean_f_list[index])
         
             original_img = cv.imread(os.path.join(arquivo_base, clean_f_list[index]))
-            
+                
             height, width, channel = original_img.shape
             bytesPerLine = 3 * width
             
             self.opencv_image = QImage(original_img.data, width, height, bytesPerLine, QImage.Format_RGB888)
             # vai ser trocado pra janela do opencv
             self.image_test = QPixmap(QImage(self.opencv_image))
-            self.image_resize = self.image_test.scaled(800,600)
+            transform = QTransform().rotate(Dados["imagens"][clean_f_list[index]]["rotacao"])
+            self.image_test = self.image_test.transformed(transform, QtCore.Qt.SmoothTransformation)
+            
+            if Dados["imagens"][clean_f_list[index]]["rotacao"] == 0 or Dados["imagens"][clean_f_list[index]]["rotacao"] == 180:
+                self.image_resize = self.image_test.scaled(800,600)
+            else:
+                self.image_resize = self.image_test.scaled(600,800)
+                
             self.image_label.setPixmap(self.image_resize)
             new_text = "Imagem: {}/{}".format(index+1, self.total_images)
             self.count_label.setText(new_text)
@@ -371,8 +392,8 @@ Esc\t- \tSalvar e Fechar")
                 flag = True
 
             self.save()
-            arquivo = open("Dados.txt", "w")
-            arquivo.write(json.dumps(Dados, indent=3))
+            # arquivo = open("Dados.txt", "w")
+            # arquivo.write(json.dumps(Dados, indent=3))
                 
     def previous_image(self):
         global index
@@ -393,7 +414,14 @@ Esc\t- \tSalvar e Fechar")
             self.opencv_image = QImage(original_img.data, width, height, bytesPerLine, QImage.Format_RGB888)
             # vai ser trocado pra janela do opencv
             self.image_test = QPixmap(QImage(self.opencv_image))
-            self.image_resize = self.image_test.scaled(800,600)
+            transform = QTransform().rotate(Dados["imagens"][clean_f_list[index]]["rotacao"])
+            self.image_test = self.image_test.transformed(transform, QtCore.Qt.SmoothTransformation)
+            
+            if Dados["imagens"][clean_f_list[index]]["rotacao"] == 0 or Dados["imagens"][clean_f_list[index]]["rotacao"] == 180:
+                self.image_resize = self.image_test.scaled(800,600)
+            else:
+                self.image_resize = self.image_test.scaled(600,800)
+                
             self.image_label.setPixmap(self.image_resize)
             new_text = "Imagem: {}/{}".format(index+1, self.total_images)
             self.count_label.setText(new_text)
@@ -543,9 +571,57 @@ Esc\t- \tSalvar e Fechar")
                 print("Não tem nada pra apaagr")
         else:
             print("Não tem nada pra apaagr")
+            
+    def rotate_plus(self):
+        Dados["imagens"][clean_f_list[index]]["rotacao"] += 90
+        if Dados["imagens"][clean_f_list[index]]["rotacao"] >= 360:
+            Dados["imagens"][clean_f_list[index]]["rotacao"] = 0
+                
+        original_img = cv.imread(os.path.join(arquivo_base, clean_f_list[index]))
+                
+        height, width, channel = original_img.shape
+        bytesPerLine = 3 * width
+        
+        self.opencv_image = QImage(original_img.data, width, height, bytesPerLine, QImage.Format_RGB888)
+        # vai ser trocado pra janela do opencv
+        self.image_test = QPixmap(QImage(self.opencv_image))
+        transform = QTransform().rotate(Dados["imagens"][clean_f_list[index]]["rotacao"])
+        self.image_test = self.image_test.transformed(transform, QtCore.Qt.SmoothTransformation)
+        
+        if Dados["imagens"][clean_f_list[index]]["rotacao"] == 0 or Dados["imagens"][clean_f_list[index]]["rotacao"] == 180:
+            self.image_resize = self.image_test.scaled(800,600)
+        else:
+            self.image_resize = self.image_test.scaled(600,800)
+            
+        self.image_label.setPixmap(self.image_resize)
+                
+        
+    def rotate_minus(self):
+        Dados["imagens"][clean_f_list[index]]["rotacao"] -= 90
+        if Dados["imagens"][clean_f_list[index]]["rotacao"] <= -360:
+            Dados["imagens"][clean_f_list[index]]["rotacao"] = 0
+                
+        original_img = cv.imread(os.path.join(arquivo_base, clean_f_list[index]))
+                
+        height, width, channel = original_img.shape
+        bytesPerLine = 3 * width
+        
+        self.opencv_image = QImage(original_img.data, width, height, bytesPerLine, QImage.Format_RGB888)
+        # vai ser trocado pra janela do opencv
+        self.image_test = QPixmap(QImage(self.opencv_image))
+        transform = QTransform().rotate(Dados["imagens"][clean_f_list[index]]["rotacao"])
+        self.image_test = self.image_test.transformed(transform, QtCore.Qt.SmoothTransformation)
+        
+        if Dados["imagens"][clean_f_list[index]]["rotacao"] == 0 or Dados["imagens"][clean_f_list[index]]["rotacao"] == -180:
+            self.image_resize = self.image_test.scaled(800,600)
+        else:
+            self.image_resize = self.image_test.scaled(600,800)
+            
+        self.image_label.setPixmap(self.image_resize)
         
     def closeEvent(self, event):
         self.save()
+        
         event.accept()
  
 if __name__ == '__main__':
